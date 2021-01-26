@@ -1,0 +1,5 @@
+Some Arduino stuff
+
+I use platformio to build and upload to Arduino: https://platformio.org/
+
+Contains EEPROM programmer
