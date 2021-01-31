@@ -53,7 +53,7 @@ void writeEeprom(int address, byte data) {
 }
 
 void printContents() {
-    for (int addr = 0; addr < 256; addr += 16) {
+    for (int addr = 0; addr < 2048; addr += 16) {
         byte data[16];
         for (int offset = 0; offset < 16; offset++) {
             data[offset] = readEeprom(addr+offset);
@@ -72,8 +72,17 @@ void printContents() {
     }
 }
 
+void eraseEeprom() {
+    for (int addr = 0; addr < 2048; addr++) {
+        writeEeprom(addr, 0xff);
+    }
+}
+
 // 4-bit hex decoder for common anode 7-segment display
-byte data[] = { 0x81, 0xcf, 0x92, 0x86, 0xcc, 0xa4, 0xa0, 0x8f, 0x80, 0x84, 0x88, 0xe0, 0xb1, 0xc2, 0xb0, 0xb8 };
+// byte data[] = { 0x81, 0xcf, 0x92, 0x86, 0xcc, 0xa4, 0xa0, 0x8f, 0x80, 0x84, 0x88, 0xe0, 0xb1, 0xc2, 0xb0, 0xb8 };
+
+// 4-bit hex decoder for common cathode 7-segment display
+byte data[] = { 0x7e, 0x30, 0x6d, 0x79, 0x33, 0x5b, 0x5f, 0x70, 0x7f, 0x7b, 0x77, 0x1f, 0x4e, 0x3d, 0x4f, 0x47 };
 
 void setup()
 {
@@ -85,18 +94,30 @@ void setup()
 
     Serial.begin(57600);
 
-    Serial.println("Erasing EEPROM...");
-    for (int addr = 0; addr < 2048; addr++) {
-        writeEeprom(addr, 0xff);
-        if (addr % 64 == 0) {
-            Serial.print(".");
-        }
-    }
-    Serial.println("");
-
     Serial.println("Writing EEPROM...");
-    for (int addr = 0; addr < sizeof(data); addr++) {
-        writeEeprom(addr, data[addr]);
+
+    // unsigned output
+    for (unsigned addr = 0; addr < 256; addr++) {
+        // units
+        writeEeprom(addr, data[addr % 10]);
+        // tens
+        writeEeprom(addr + 0x100, data[(addr/10) % 10]);
+        // hundreds
+        writeEeprom(addr + 0x200, data[addr/100]);
+        // thousands
+        writeEeprom(addr + 0x300, 0);
+    }
+
+    // signed output
+    for (int addr = -128; addr < 128; addr++) {
+        // units
+        writeEeprom((byte)addr + 0x400, data[abs(addr) % 10]);
+        // tens
+        writeEeprom((byte)addr + 0x500, data[abs(addr/10) % 10]);
+        // hundreds
+        writeEeprom((byte)addr + 0x600, data[abs(addr/100)]);
+        // thousands (sign)
+        writeEeprom((byte)addr + 0x700, addr < 0 ? 1 : 0);
     }
 
     Serial.println("Reading EEPROM...");
