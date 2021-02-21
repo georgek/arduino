@@ -78,23 +78,20 @@ void eraseEeprom() {
     }
 }
 
-// 4-bit hex decoder for common anode 7-segment display
-// byte data[] = { 0x81, 0xcf, 0x92, 0x86, 0xcc, 0xa4, 0xa0, 0x8f, 0x80, 0x84, 0x88, 0xe0, 0xb1, 0xc2, 0xb0, 0xb8 };
-
-// 4-bit hex decoder for common cathode 7-segment display
-byte data[] = { 0x7e, 0x30, 0x6d, 0x79, 0x33, 0x5b, 0x5f, 0x70, 0x7f, 0x7b, 0x77, 0x1f, 0x4e, 0x3d, 0x4f, 0x47 };
-
-void setup()
+// writes decoder for 7-segment decimal display
+void writeDisplay()
 {
-    pinMode(SER, OUTPUT);
-    pinMode(SRCLK, OUTPUT);
-    pinMode(RCLK, OUTPUT);
-    digitalWrite(EEPROM_WE, HIGH);
-    pinMode(EEPROM_WE, OUTPUT);
+    // 4-bit hex decoder for common anode 7-segment display
+    // byte data[] = {
+    //     0x81, 0xcf, 0x92, 0x86, 0xcc, 0xa4, 0xa0, 0x8f,
+    //     0x80, 0x84, 0x88, 0xe0, 0xb1, 0xc2, 0xb0, 0xb8
+    // };
 
-    Serial.begin(57600);
-
-    Serial.println("Writing EEPROM...");
+    // 4-bit hex decoder for common cathode 7-segment display
+    byte data[] = {
+        0x7e, 0x30, 0x6d, 0x79, 0x33, 0x5b, 0x5f, 0x70,
+        0x7f, 0x7b, 0x77, 0x1f, 0x4e, 0x3d, 0x4f, 0x47
+    };
 
     // unsigned output
     for (unsigned addr = 0; addr < 256; addr++) {
@@ -119,6 +116,37 @@ void setup()
         // thousands (sign)
         writeEeprom((byte)addr + 0x700, addr < 0 ? 1 : 0);
     }
+}
+
+// writes microcode
+void writeMicrocode()
+{
+    
+}
+
+void setup()
+{
+    pinMode(SER, OUTPUT);
+    pinMode(SRCLK, OUTPUT);
+    pinMode(RCLK, OUTPUT);
+    digitalWrite(EEPROM_WE, HIGH);
+    pinMode(EEPROM_WE, OUTPUT);
+
+    Serial.begin(57600);
+
+    Serial.println("Writing EEPROM...");
+
+#ifdef DISP
+
+    writeDisplay();
+
+#endif // DISP
+
+#ifdef UCODE
+
+    writeMicrocode();
+
+#endif // UCODE
 
     Serial.println("Reading EEPROM...");
 
