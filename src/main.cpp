@@ -121,7 +121,46 @@ void writeDisplay()
 // writes microcode
 void writeMicrocode()
 {
-    
+#define BIT(N) ((uint16_t) 1 << N)
+#define HLT BIT(15)
+#define MI BIT(14)
+#define RI BIT(13)
+#define RO BIT(12)
+#define IO BIT(11)
+#define II BIT(10)
+#define AI BIT(9)
+#define AO BIT(8)
+#define EO BIT(7)
+#define SU BIT(6)
+#define BI BIT(5)
+#define OI BIT(4)
+#define CE BIT(3)
+#define CO BIT(2)
+#define JM BIT(1)
+
+    uint16_t instructions[] = {
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 0000 - NOP
+        CO|MI,   RO|II|CE,  IO|MI, RO|AI, 0,        0, 0, 0, // 0001 - LDA
+        CO|MI,   RO|II|CE,  IO|MI, RO|BI, EO|AI,    0, 0, 0, // 0010 - ADD
+        CO|MI,   RO|II|CE,  IO|MI, RO|BI, EO|AI|SU, 0, 0, 0, // 0011 - SUB
+        CO|MI,   RO|II|CE,  IO|MI, AO|RI, 0,        0, 0, 0, // 0100 - STA
+        CO|MI,   RO|II|CE,  IO|AI, 0,     0,        0, 0, 0, // 0101 - LDI
+        CO|MI,   RO|II|CE,  IO|JM, 0,     0,        0, 0, 0, // 0110 - JMP
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 0111
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1000
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1001
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1010
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1011
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1100
+        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1101
+        CO|MI,   RO|II|CE,  AO|OI, 0,     0,        0, 0, 0, // 1110 - OUT
+        CO|MI,   RO|II|CE,  HLT,   0,     0,        0, 0, 0  // 1111 - HLT
+    };
+
+    for (int addr = 0; addr < 128; addr++) {
+        writeEeprom(addr, instructions[addr]);
+        writeEeprom(addr+128, instructions[addr] >> 8);
+    }
 }
 
 void setup()
