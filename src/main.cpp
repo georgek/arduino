@@ -137,29 +137,60 @@ void writeMicrocode()
 #define CE BIT(3)
 #define CO BIT(2)
 #define JM BIT(1)
+#define FI BIT(0)
 
-    uint16_t instructions[] = {
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 0000 - NOP
-        CO|MI,   RO|II|CE,  IO|MI, RO|AI, 0,        0, 0, 0, // 0001 - LDA
-        CO|MI,   RO|II|CE,  IO|MI, RO|BI, EO|AI,    0, 0, 0, // 0010 - ADD
-        CO|MI,   RO|II|CE,  IO|MI, RO|BI, EO|AI|SU, 0, 0, 0, // 0011 - SUB
-        CO|MI,   RO|II|CE,  IO|MI, AO|RI, 0,        0, 0, 0, // 0100 - STA
-        CO|MI,   RO|II|CE,  IO|AI, 0,     0,        0, 0, 0, // 0101 - LDI
-        CO|MI,   RO|II|CE,  IO|JM, 0,     0,        0, 0, 0, // 0110 - JMP
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 0111
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1000
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1001
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1010
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1011
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1100
-        CO|MI,   RO|II|CE,  0,     0,     0,        0, 0, 0, // 1101
-        CO|MI,   RO|II|CE,  AO|OI, 0,     0,        0, 0, 0, // 1110 - OUT
-        CO|MI,   RO|II|CE,  HLT,   0,     0,        0, 0, 0  // 1111 - HLT
+    uint16_t basic_ucode[16][8] = {
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 0000 - NOP
+        { CO|MI,   RO|II|CE,  IO|MI, RO|AI, 0,           0, 0, 0 }, // 0001 - LDA
+        { CO|MI,   RO|II|CE,  IO|MI, RO|BI, EO|AI|FI,    0, 0, 0 }, // 0010 - ADD
+        { CO|MI,   RO|II|CE,  IO|MI, RO|BI, EO|AI|SU|FI, 0, 0, 0 }, // 0011 - SUB
+        { CO|MI,   RO|II|CE,  IO|MI, AO|RI, 0,           0, 0, 0 }, // 0100 - STA
+        { CO|MI,   RO|II|CE,  IO|AI, 0,     0,           0, 0, 0 }, // 0101 - LDI
+        { CO|MI,   RO|II|CE,  IO|JM, 0,     0,           0, 0, 0 }, // 0110 - JMP
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 0111 - JC
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 1000 - JZ
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 1001
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 1010
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 1011
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 1100
+        { CO|MI,   RO|II|CE,  0,     0,     0,           0, 0, 0 }, // 1101
+        { CO|MI,   RO|II|CE,  AO|OI, 0,     0,           0, 0, 0 }, // 1110 - OUT
+        { CO|MI,   RO|II|CE,  HLT,   0,     0,           0, 0, 0 }  // 1111 - HLT
     };
 
-    for (int addr = 0; addr < 128; addr++) {
-        writeEeprom(addr, instructions[addr]);
-        writeEeprom(addr+128, instructions[addr] >> 8);
+    uint16_t ucode[4][16][8];
+
+#define FLAGS_Z0C0 0
+#define FLAGS_Z0C1 1
+#define FLAGS_Z1C0 2
+#define FLAGS_Z1C1 3
+
+#define JC 0b0111
+#define JZ 0b1000
+
+    memcpy(ucode[FLAGS_Z0C0], basic_ucode, sizeof(basic_ucode));
+
+    memcpy(ucode[FLAGS_Z0C1], basic_ucode, sizeof(basic_ucode));
+    ucode[FLAGS_Z0C1][JC][2] = IO|JM;
+
+    memcpy(ucode[FLAGS_Z1C0], basic_ucode, sizeof(basic_ucode));
+    ucode[FLAGS_Z1C0][JZ][2] = IO|JM;
+
+    memcpy(ucode[FLAGS_Z1C1], basic_ucode, sizeof(basic_ucode));
+    ucode[FLAGS_Z1C1][JC][2] = IO|JM;
+    ucode[FLAGS_Z1C1][JZ][2] = IO|JM;
+
+    for (int addr = 0; addr < 1024; addr++) {
+        int flags = (addr >> 8) & 0x3;
+        int byte_select = (addr >> 7) & 0x1;
+        int opcode = (addr >> 3) & 0xF;
+        int step = addr & 0x7;
+
+        if (byte_select) {
+            writeEeprom(addr, ucode[flags][opcode][step] >> 8);
+        } else {
+            writeEeprom(addr, ucode[flags][opcode][step]);
+        }
     }
 }
 
