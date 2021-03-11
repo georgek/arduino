@@ -7,6 +7,9 @@
 #define EEPROM_IO7 12
 #define EEPROM_WE 13
 
+#define READ_CMD 0x3f
+#define WRITE_CMD 0x4f
+
 void setAddress(int address, bool outputEnable) {
     digitalWrite(RCLK, LOW);
     digitalWrite(SRCLK, LOW);
@@ -236,7 +239,9 @@ void setup()
         Serial.write(incoming);
         break;
     }
-    writeIncoming();
+    if (incoming == WRITE_CMD) {
+        writeIncoming();
+    }
     echoContents();
 }
 
