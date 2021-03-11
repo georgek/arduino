@@ -79,6 +79,7 @@ void eraseEeprom() {
 }
 
 // writes decoder for 7-segment decimal display
+/*
 void writeDisplay()
 {
     // 4-bit hex decoder for common anode 7-segment display
@@ -117,8 +118,10 @@ void writeDisplay()
         writeEeprom((byte)addr + 0x700, addr < 0 ? 1 : 0);
     }
 }
+*/
 
 // writes microcode
+/*
 void writeMicrocode()
 {
 #define BIT(N) ((uint16_t) 1 << N)
@@ -193,9 +196,32 @@ void writeMicrocode()
         }
     }
 }
+*/
+
+void writeIncoming() {
+    uint8_t incoming;
+
+    for (int addr = 0; addr < 2048; addr++) {
+        while (!Serial.available()) delayMicroseconds(1);
+        incoming = Serial.read();
+        writeEeprom(addr, incoming);
+        Serial.write(incoming);
+    }
+}
+
+void echoContents() {
+    uint8_t content;
+    for (int addr = 0; addr < 2048; addr++) {
+        content = readEeprom(addr);
+        Serial.write(content);
+    }
+    Serial.flush();
+}
 
 void setup()
 {
+    uint8_t incoming;
+
     pinMode(SER, OUTPUT);
     pinMode(SRCLK, OUTPUT);
     pinMode(RCLK, OUTPUT);
@@ -204,23 +230,14 @@ void setup()
 
     Serial.begin(57600);
 
-    Serial.println("Writing EEPROM...");
-
-#ifdef DISP
-
-    writeDisplay();
-
-#endif // DISP
-
-#ifdef UCODE
-
-    writeMicrocode();
-
-#endif // UCODE
-
-    Serial.println("Reading EEPROM...");
-
-    printContents();
+    while (1) {
+        while (!Serial.available()) delayMicroseconds(1);
+        incoming = Serial.read();
+        Serial.write(incoming);
+        break;
+    }
+    writeIncoming();
+    echoContents();
 }
 
 void loop()
